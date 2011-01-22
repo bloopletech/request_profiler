@@ -32,7 +32,7 @@ module Rack
     end
 
     def profile_mode(request)
-      mode_string = request.params["profile_request"]
+      mode_string = request.params.delete("profile_request")
       if mode_string
         if mode_string.downcase == "true"
           ::RubyProf::PROCESS_TIME
@@ -67,11 +67,12 @@ module Rack
       result.eliminate_methods!(@exclusions) if @exclusions
       printer = @printer.new(result)
       Dir.mkdir(@path) unless ::File.exists?(@path)
-      url = request.fullpath.gsub(/[?\/]/, '-')
-      filename = "#{Time.now.strftime('%Y-%m-%d-%H-%M-%S')}-#{url}.#{format(printer)}"
+      filename = "#{SecureRandom.hex(10)}.#{format(printer)}"
       ::File.open(@path + filename, 'w+') do |f|
-        printer.print(f)
+        printer.print(f, :min_time => 0.005)
       end
+
+      %w(xdg-open open).detect { |x| system("#{x} #{@path + filename}") }
     end
   end
 end
